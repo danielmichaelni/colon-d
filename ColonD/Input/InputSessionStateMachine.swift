@@ -62,15 +62,16 @@ struct InputSessionStateMachine {
     ) -> Action {
         switch session {
         case .idle(let previousAllowsTrigger):
-            if character == ":", previousAllowsTrigger || isAtStartOfText {
-                session = .tracking(query: "")
-                return .updatePicker(query: "")
+            if character == ":" {
+                if previousAllowsTrigger {
+                    session = .tracking(query: "")
+                    return .updatePicker(query: "")
+                }
+
+                return reconcileFocusedText(.recoverTriggerSuffix)
             }
 
             session = .idle(previousAllowsTrigger: character.isTriggerBoundary)
-            if character == ":" {
-                return reconcileFocusedText(.recoverTriggerSuffix)
-            }
             return .none
 
         case .tracking(let query):
