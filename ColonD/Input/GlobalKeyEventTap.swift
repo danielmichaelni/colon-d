@@ -19,6 +19,10 @@ struct KeyInfo {
             || flags.contains(.maskCommand)
             || flags.contains(.maskAlternate)
     }
+
+    var isSpaceKey: Bool {
+        keyCode == CGKeyCode(kVK_Space)
+    }
 }
 
 @MainActor

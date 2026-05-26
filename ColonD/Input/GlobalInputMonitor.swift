@@ -93,6 +93,10 @@ final class GlobalInputMonitor {
             suspendUntilPermissionsAreReady()
             return true
         }
+        if keyInfo.isSpaceKey {
+            dismiss(allowFutureTriggerAfter: keyInfo.characters ?? " ")
+            return true
+        }
 
         return !pickerSession.handleControlKey(
             keyInfo,

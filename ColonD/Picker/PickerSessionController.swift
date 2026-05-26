@@ -43,6 +43,7 @@ final class PickerSessionController {
         ControlKey(keyInfo) != nil
     }
 
+    /// Returns true when the picker should consume the key event.
     func handleControlKey(
         _ keyInfo: KeyInfo,
         onConfirm: (EmojiMatch) -> Void,
@@ -89,7 +90,7 @@ private enum ControlKey {
             self = .next
         case CGKeyCode(kVK_UpArrow):
             self = .previous
-        case CGKeyCode(kVK_Return), CGKeyCode(kVK_Tab), CGKeyCode(kVK_Space):
+        case CGKeyCode(kVK_Return), CGKeyCode(kVK_Tab):
             self = .confirm
         case CGKeyCode(kVK_Escape):
             self = .dismiss
