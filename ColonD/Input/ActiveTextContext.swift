@@ -2,18 +2,49 @@ import AppKit
 
 @MainActor
 final class ActiveTextContext {
+    struct FocusedTextTarget: Equatable {
+        let element: AXUIElement
+
+        static func == (lhs: Self, rhs: Self) -> Bool {
+            CFEqual(lhs.element, rhs.element)
+        }
+    }
+
+    func currentFocusedTarget() -> FocusedTextTarget? {
+        guard let element = AccessibilityValueReader.focusedElement() else {
+            return nil
+        }
+        return FocusedTextTarget(element: element)
+    }
+
+    func isFocused(_ target: FocusedTextTarget) -> Bool {
+        currentFocusedTarget() == target
+    }
+
     func currentSelectionRange() -> CFRange? {
-        guard let focusedElement = currentFocusedElement() else {
+        guard let target = currentFocusedTarget() else {
             return nil
         }
 
-        return selectedTextRange(in: focusedElement)
+        return selectionRange(in: target)
+    }
+
+    func selectionRange(in target: FocusedTextTarget) -> CFRange? {
+        selectedTextRange(in: target.element)
     }
 
     func currentTextBeforeInsertionPoint(maxLength: Int) -> String? {
+        guard let target = currentFocusedTarget() else { return nil }
+        return textBeforeInsertionPoint(in: target, maxLength: maxLength)
+    }
+
+    func textBeforeInsertionPoint(
+        in target: FocusedTextTarget,
+        maxLength: Int
+    ) -> String? {
         guard maxLength > 0 else { return "" }
-        guard let focusedElement = currentFocusedElement(),
-            let selectionRange = selectedTextRange(in: focusedElement),
+        guard
+            let selectionRange = selectedTextRange(in: target.element),
             selectionRange.location >= 0,
             selectionRange.length == 0
         else {
@@ -25,11 +56,11 @@ final class ActiveTextContext {
             location: selectionRange.location - length,
             length: length
         )
-        if let text = AccessibilityValueReader.stringForRange(range, from: focusedElement) {
+        if let text = AccessibilityValueReader.stringForRange(range, from: target.element) {
             return text
         }
 
-        guard let value = AccessibilityValueReader.string(kAXValueAttribute, from: focusedElement)
+        guard let value = AccessibilityValueReader.string(kAXValueAttribute, from: target.element)
         else {
             return nil
         }
@@ -40,10 +71,13 @@ final class ActiveTextContext {
         return String(value[startIndex..<caretIndex])
     }
 
-    func selectTextBeforeInsertionPoint(length: Int) -> Bool {
+    func selectTextBeforeInsertionPoint(
+        in target: FocusedTextTarget,
+        length: Int
+    ) -> Bool {
         guard length > 0 else { return false }
-        guard let focusedElement = currentFocusedElement(),
-            let selectionRange = selectedTextRange(in: focusedElement),
+        guard
+            let selectionRange = selectedTextRange(in: target.element),
             selectionRange.location >= length,
             selectionRange.length == 0
         else {
@@ -57,36 +91,32 @@ final class ActiveTextContext {
         return AccessibilityValueReader.setRange(
             replacementRange,
             for: kAXSelectedTextRangeAttribute,
-            in: focusedElement
+            in: target.element
         )
     }
 
-    func setSelectionRange(_ range: CFRange) -> Bool {
-        guard let focusedElement = currentFocusedElement() else {
-            return false
-        }
-
+    func setSelectionRange(_ range: CFRange, in target: FocusedTextTarget) -> Bool {
         return AccessibilityValueReader.setRange(
             range,
             for: kAXSelectedTextRangeAttribute,
-            in: focusedElement
+            in: target.element
         )
     }
 
-    func currentSelectedText() -> String? {
-        guard let focusedElement = currentFocusedElement(),
-            let selectionRange = selectedTextRange(in: focusedElement),
+    func selectedText(in target: FocusedTextTarget) -> String? {
+        guard
+            let selectionRange = selectedTextRange(in: target.element),
             selectionRange.length > 0
         else {
             return nil
         }
 
-        if let text = AccessibilityValueReader.stringForRange(selectionRange, from: focusedElement)
+        if let text = AccessibilityValueReader.stringForRange(selectionRange, from: target.element)
         {
             return text
         }
 
-        guard let value = AccessibilityValueReader.string(kAXValueAttribute, from: focusedElement),
+        guard let value = AccessibilityValueReader.string(kAXValueAttribute, from: target.element),
             selectionRange.location >= 0,
             selectionRange.location + selectionRange.length <= value.utf16.count
         else {
@@ -99,10 +129,6 @@ final class ActiveTextContext {
             in: value
         )
         return String(value[startIndex..<endIndex])
-    }
-
-    private func currentFocusedElement() -> AXUIElement? {
-        AccessibilityValueReader.focusedElement()
     }
 
     private func selectedTextRange(in focusedElement: AXUIElement) -> CFRange? {

@@ -14,6 +14,18 @@ struct KeyInfo {
         isReplacementEvent = SyntheticReplacementEventTag.isTagged(event)
     }
 
+    nonisolated init(
+        keyCode: CGKeyCode,
+        characters: String?,
+        flags: CGEventFlags = [],
+        isReplacementEvent: Bool = false
+    ) {
+        self.keyCode = keyCode
+        self.characters = characters
+        self.flags = flags
+        self.isReplacementEvent = isReplacementEvent
+    }
+
     var usesEditingModifier: Bool {
         flags.contains(.maskControl)
             || flags.contains(.maskCommand)
@@ -22,6 +34,10 @@ struct KeyInfo {
 
     var isSpaceKey: Bool {
         keyCode == CGKeyCode(kVK_Space)
+    }
+
+    var usesPickerControlModifier: Bool {
+        !flags.intersection([.maskControl, .maskCommand, .maskAlternate, .maskShift]).isEmpty
     }
 }
 

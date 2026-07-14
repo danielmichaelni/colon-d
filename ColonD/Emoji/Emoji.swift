@@ -6,10 +6,6 @@ struct Emoji: Identifiable, Equatable {
     let tags: [String]
 
     var id: String { symbol }
-
-    var searchableTerms: [String] {
-        [shortcode] + tags
-    }
 }
 
 struct EmojiMatch: Identifiable, Equatable {

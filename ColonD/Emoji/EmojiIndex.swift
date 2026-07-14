@@ -14,10 +14,15 @@ struct EmojiIndex {
         }
 
         return emojis.compactMap { emoji in
-            let bestScore =
-                emoji.searchableTerms
+            let shortcodeScore = score(
+                query: normalizedQuery,
+                candidate: normalize(emoji.shortcode)
+            )
+            let tagScore =
+                emoji.tags
                 .map { score(query: normalizedQuery, candidate: normalize($0)) }
                 .max() ?? 0
+            let bestScore = max(shortcodeScore > 0 ? shortcodeScore + 1 : 0, tagScore)
 
             guard bestScore > 0 else { return nil }
             return EmojiMatch(emoji: emoji, score: bestScore)

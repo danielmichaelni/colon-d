@@ -11,13 +11,14 @@ final class PasteboardReplacementCoordinator {
     private let markerType = NSPasteboard.PasteboardType(
         "com.danielmichaelni.ColonD.replacementMarker"
     )
-    private let restoreDelay: TimeInterval = 1
+    private let restoreDelay: TimeInterval
 
     private var state = State.idle
     private var restoreWorkItem: DispatchWorkItem?
 
-    init(pasteboard: ReplacementPasteboard) {
+    init(pasteboard: ReplacementPasteboard, restoreDelay: TimeInterval = 1) {
         self.pasteboard = pasteboard
+        self.restoreDelay = restoreDelay
     }
 
     func prepareReplacementString(_ string: String) -> Bool {

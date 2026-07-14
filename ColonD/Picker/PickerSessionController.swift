@@ -85,6 +85,8 @@ private enum ControlKey {
     case dismiss
 
     init?(_ keyInfo: KeyInfo) {
+        guard !keyInfo.usesPickerControlModifier else { return nil }
+
         switch keyInfo.keyCode {
         case CGKeyCode(kVK_DownArrow):
             self = .next

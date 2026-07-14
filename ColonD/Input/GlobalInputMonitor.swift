@@ -22,6 +22,7 @@ final class GlobalInputMonitor {
     )
     private var keyInputInterpreter = KeyInputInterpreter()
     private let replacementOperations = ReplacementOperationTracker()
+    private var trackedTextTarget: ActiveTextContext.FocusedTextTarget?
 
     init(
         appState: AppState,
@@ -93,7 +94,11 @@ final class GlobalInputMonitor {
             suspendUntilPermissionsAreReady()
             return true
         }
-        if keyInfo.isSpaceKey {
+        guard let trackedTextTarget, activeTextContext.isFocused(trackedTextTarget) else {
+            dismiss(allowFutureTriggerAfter: nil)
+            return true
+        }
+        if keyInfo.isSpaceKey, !keyInfo.usesPickerControlModifier {
             dismiss(allowFutureTriggerAfter: keyInfo.characters ?? " ")
             return true
         }
@@ -111,6 +116,9 @@ final class GlobalInputMonitor {
 
     private func handleForwardedKey(_ keyInfo: KeyInfo, isReplacingSelection: Bool) {
         guard appState.isEnabled, !keyInfo.isReplacementEvent else { return }
+        if let trackedTextTarget, !activeTextContext.isFocused(trackedTextTarget) {
+            dismiss(allowFutureTriggerAfter: nil)
+        }
         perform(
             keyInputInterpreter.handle(
                 keyInfo,
@@ -123,6 +131,19 @@ final class GlobalInputMonitor {
     }
 
     private func schedulePickerUpdate(query: String) {
+        if let trackedTextTarget {
+            guard activeTextContext.isFocused(trackedTextTarget) else {
+                dismiss(allowFutureTriggerAfter: nil)
+                return
+            }
+        } else {
+            guard let focusedTarget = activeTextContext.currentFocusedTarget() else {
+                dismiss(allowFutureTriggerAfter: nil)
+                return
+            }
+            trackedTextTarget = focusedTarget
+        }
+
         focusedTextSynchronizer.invalidate()
         updatePicker(query: query)
     }
@@ -138,6 +159,11 @@ final class GlobalInputMonitor {
     private func reconcileWithFocusedElement(
         request: KeyInputInterpreter.FocusedTextReconciliationRequest
     ) {
+        if let trackedTextTarget, !activeTextContext.isFocused(trackedTextTarget) {
+            dismiss(allowFutureTriggerAfter: nil)
+            return
+        }
+
         guard
             let textBeforeCaret = focusedTextSynchronizer.currentTextBeforeInsertionPoint(
                 maxLength: request.readLength
@@ -171,11 +197,19 @@ final class GlobalInputMonitor {
     private func confirm(_ match: EmojiMatch) {
         guard !replacementOperations.isPending else { return }
         guard let trackedTriggerText = keyInputInterpreter.trackedTriggerText else { return }
+        guard let trackedTextTarget, activeTextContext.isFocused(trackedTextTarget) else {
+            dismiss(allowFutureTriggerAfter: nil)
+            return
+        }
 
         let replacementID = replacementOperations.begin()
         eventTaps.stopControl()
 
-        replacementEngine.replace(triggerText: trackedTriggerText, with: match.emoji.symbol) {
+        replacementEngine.replace(
+            in: trackedTextTarget,
+            triggerText: trackedTriggerText,
+            with: match.emoji.symbol
+        ) {
             [weak self] result in
             guard let self else { return }
             guard self.replacementOperations.complete(id: replacementID) else { return }
@@ -210,6 +244,7 @@ final class GlobalInputMonitor {
 
     private func closePicker() {
         replacementOperations.cancel()
+        trackedTextTarget = nil
         pickerSession.close()
         eventTaps.stopControl()
         focusedTextSynchronizer.invalidate()
