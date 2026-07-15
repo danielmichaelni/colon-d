@@ -10,15 +10,18 @@ final class PickerSessionController {
     }
 
     private let emojiIndex: EmojiIndex
+    private let emojiUsageHistory: EmojiUsageHistory
     private let viewModel: PickerViewModel
     private let windowController: PickerWindowController
 
     init(
         emojiIndex: EmojiIndex,
+        emojiUsageHistory: EmojiUsageHistory,
         viewModel: PickerViewModel,
         windowController: PickerWindowController
     ) {
         self.emojiIndex = emojiIndex
+        self.emojiUsageHistory = emojiUsageHistory
         self.viewModel = viewModel
         self.windowController = windowController
     }
@@ -68,7 +71,13 @@ final class PickerSessionController {
     }
 
     func update(query: String) -> Bool {
-        viewModel.update(query: query, matches: emojiIndex.search(query))
+        viewModel.update(
+            query: query,
+            matches: emojiIndex.search(
+                query,
+                recentEmojiIDs: emojiUsageHistory.recentEmojiIDs
+            )
+        )
         windowController.show()
         return windowController.isVisible
     }

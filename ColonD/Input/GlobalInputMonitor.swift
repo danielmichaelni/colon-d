@@ -6,6 +6,7 @@ final class GlobalInputMonitor {
     private let permissionStatus: PermissionStatusMonitor
     private let pickerSession: PickerSessionController
     private let replacementEngine: TextReplacementEngine
+    private let emojiUsageHistory: EmojiUsageHistory
     private let activeTextContext: ActiveTextContext
     private let focusedTextSynchronizer: FocusedTextSynchronizer
     private lazy var eventTaps = InputEventTaps(
@@ -28,12 +29,14 @@ final class GlobalInputMonitor {
         appState: AppState,
         permissionStatus: PermissionStatusMonitor,
         pickerSession: PickerSessionController,
-        activeTextContext: ActiveTextContext
+        activeTextContext: ActiveTextContext,
+        emojiUsageHistory: EmojiUsageHistory
     ) {
         self.appState = appState
         self.permissionStatus = permissionStatus
         self.pickerSession = pickerSession
         self.activeTextContext = activeTextContext
+        self.emojiUsageHistory = emojiUsageHistory
         replacementEngine = TextReplacementEngine(activeTextContext: activeTextContext)
         focusedTextSynchronizer = FocusedTextSynchronizer(activeTextContext: activeTextContext)
         self.pickerSession.onSelect = { [weak self] match in
@@ -219,6 +222,7 @@ final class GlobalInputMonitor {
                 return
             }
 
+            self.emojiUsageHistory.record(match.emoji)
             self.keyInputInterpreter.confirmSelection()
             self.closePicker()
         }

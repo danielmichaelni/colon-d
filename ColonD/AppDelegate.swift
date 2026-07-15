@@ -9,7 +9,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
-        let emojiIndex = EmojiIndex(emojis: EmojiDatabase.all)
+        let emojis = EmojiDatabase.all
+        let emojiIndex = EmojiIndex(emojis: emojis)
+        let emojiUsageHistory = EmojiUsageHistory(
+            validEmojiIDs: Set(emojis.map(\.id))
+        )
         let permissionGate = PermissionGate()
         let permissionStatus = PermissionStatusMonitor(permissions: permissionGate)
         let activeTextContext = ActiveTextContext()
@@ -17,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let pickerController = PickerWindowController(viewModel: pickerViewModel)
         let pickerSession = PickerSessionController(
             emojiIndex: emojiIndex,
+            emojiUsageHistory: emojiUsageHistory,
             viewModel: pickerViewModel,
             windowController: pickerController
         )
@@ -25,7 +30,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appState: appState,
             permissionStatus: permissionStatus,
             pickerSession: pickerSession,
-            activeTextContext: activeTextContext
+            activeTextContext: activeTextContext,
+            emojiUsageHistory: emojiUsageHistory
         )
         self.inputMonitor = inputMonitor
 
